@@ -1,5 +1,61 @@
 # Introduction
-This is a boilerplate plugin.
+This plugin connect to a Serial device (RS232/RS485) exposed over [`socat`](https://linux.die.net/man/1/socat), and sends command payloads to it.<br />
+For configuration, see "[Configuration](#Configuration)" sectio below.
+
+If sends every payload defined in the `.payload` property on the endpoint command, but expects the device to end its response with `\r\n` or `\r` or `\n`.
+Maybe this can be confiugred in further version, but currently i use it to control my [Aten VS0801H HDMI switcher](https://www.aten.com/de/de/products/professionelles-audiovideo/grafik-switches/vs0801h/).
+
+More features like byte counter, configurable line end, etc. pp. could be implemented.<br />
+Feel free to open a issue if you need a feature or support: https://github.com/mStirner/oh-plg-RS232-bridge/issues
+
+# Configuration
+#### Create a system unit file:
+
+`/etc/systemd/system/socat-<your device>`:
+```systemd
+[Unit]
+Description=Socat Serial to TCP bridge
+After=network.target dev-ttyUSB0.device
+Requires=dev-ttyUSB0.device
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:4161,fork /dev/ttyUSB0,raw,echo=0,b19200
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Replace `ttyUSB0` with your real serial device.<br />
+> [!NOTE]
+> Dont forget to set the right baud rate, stop & data bits, etc.
+
+
+#### Enable & start the service:
+```sh
+systemctl daemon-reload
+systemctl enable --now socat-ttyUSB0
+```
+
+### Add device & endpoint into OpenHaus:
+Create a device & endpoint item, with the followin labels:
+```js
+{
+   labels: [
+      "type=serial",
+      "bridge=true",
+      "mode=rs232"
+   ]
+}
+```
+
+> [!NOTE]
+> The configration above is very minimalistic.<br />
+> **TODO** Add more details/examples
+
 
 # Installation
 1) Create a new plugin over the OpenHaus backend HTTP API
@@ -11,23 +67,17 @@ Add plugin item via HTTP API:<br />
 [PUT] `http://{{HOST}}:{{PORT}}/api/plugins/`
 ```json
 {
-   "name":"Plugin Boilerplate",
-   "version": "1.0.0",
+   "name":"oh-plg-rs232-bridge",
+   "version": "0.1.0",
    "intents":[
       "devices",
-      "endpoints",
-      "plugins",
-      "rooms",
-      "ssdp",
-      "store",
-      "users",
-      "vault"
+      "endpoints"
    ],
-   "uuid": "00000000-0000-0000-0000-000000000000"
+   "uuid": "38708ff1-5fc0-4723-8fe9-64e4695705ed"
 }
-
 ```
+
 Mount the source code into the backend plugins folder
 ```sh
-sudo mount --bind ~/projects/OpenHaus/plugins/plugin-boilerplate/ ~/projects/OpenHaus/backend/plugins/00000000-0000-0000-0000-000000000000/
+sudo mount --bind ~/projects/OpenHaus/plugins/oh-plg-rs232-bridge/ ~/projects/OpenHaus/backend/plugins/38708ff1-5fc0-4723-8fe9-64e4695705ed/
 ```

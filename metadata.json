@@ -1,0 +1,12 @@
+{
+  "name": "oh-plg-rs232-bridge",
+  "version": "0.1.0",
+  "intents": [
+    "devices",
+    "endpoints"
+  ],
+  "author": "Marc Stirner <marc.stirner@open-haus.io>",
+  "website": "",
+  "description": "",
+  "uuid": "38708ff1-5fc0-4723-8fe9-64e4695705ed"
+}
