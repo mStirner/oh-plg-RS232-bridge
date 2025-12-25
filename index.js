@@ -32,7 +32,7 @@ module.exports = (info, logger, init) => {
                             let msg = "Multiple interface IDs in commands array deteced\r\n";
                             msg += `Expected ${id} got ${cmd.interface}`;
 
-                            throw new Error(err);
+                            throw new Error(msg);
 
                         }
 
@@ -51,7 +51,7 @@ module.exports = (info, logger, init) => {
                     endpoint.commands.forEach((cmd) => {
                         cmd.setHandler((_, done) => {
 
-                            logger.debug(`Handle command ${cmd.name}`, cmd);
+                            logger.verbose(`Handle command ${cmd.name}`, cmd);
 
                             let { host, port } = iface.settings;
                             let stream = iface.bridge();
@@ -74,37 +74,53 @@ module.exports = (info, logger, init) => {
 
                                             chunks.push(chunk);
 
+                                            const buf = Buffer.concat(chunks)
+                                            const crlf = Buffer.from("0d0a", "hex");
+
+                                            if (buf.length >= crlf.length && buf.subarray(buf.length - crlf.length).equals(crlf)) {
+                                                stream.end();
+                                                //stream.emit("end");
+                                            }
+
+                                            /*
+
                                             let str = Buffer.concat(chunks).toString();
+
+                                            console.log("String:", str)
 
                                             let end = [
                                                 str.endsWith('\r\n'),
                                                 str.endsWith('\r'),
                                                 str.endsWith('\n')
                                             ].some((v) => { return v });
+                                            
 
                                             if (end) {
                                                 stream.end();
                                             }
+                                            */
 
                                         });
 
-                                        stream.once("end", () => {
+                                        ["end", "close"].forEach((event) => {
+                                            stream.once(event, () => {
 
-                                            let buff = Buffer.concat(chunks)
-                                            let str = buff.toString();
+                                                let buff = Buffer.concat(chunks)
+                                                let str = buff.toString();
 
-                                            let success = [
-                                                Buffer.compare(buff, cmd.payload) === 0,
-                                                str.toLowerCase() === "ok",
-                                                str === "1",
-                                                str === "true",
-                                                str === cmd.payload?.toString(),
-                                                new RegExp(/ok/gim).test(str)
-                                            ].some((value) => { return value });
+                                                let success = [
+                                                    Buffer.compare(buff, Buffer.isBuffer(cmd.payload) ? cmd.payload : Buffer.from(cmd.payload)) === 0,
+                                                    str.toLowerCase() === "ok",
+                                                    str === "1",
+                                                    str === "true",
+                                                    str === cmd.payload?.toString(),
+                                                    new RegExp(/ok/gim).test(str)
+                                                ].some((value) => { return value });
 
-                                            done(null, success ?? null);
-                                            clearTimeout(timeout);
+                                                done(null, success ?? null);
+                                                clearTimeout(timeout);
 
+                                            });
                                         });
 
                                     }

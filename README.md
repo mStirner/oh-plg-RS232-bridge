@@ -32,7 +32,7 @@ WantedBy=multi-user.target
 Replace `ttyUSB0` with your real serial device.<br />
 > [!NOTE]
 > Dont forget to set the right baud rate, stop & data bits, etc.
-
+> 
 
 #### Enable & start the service:
 ```sh
@@ -40,11 +40,17 @@ systemctl daemon-reload
 systemctl enable --now socat-ttyUSB0
 ```
 
+#### Quick Test
+```sh
+echo -ne "<payload>" | nc -q 1 <host> 4161
+#echo -ne "sw i05\r\n" | nc -q 1 192.168.2.145 4161
+```
+
 ### Add device & endpoint into OpenHaus:
-Create a device & endpoint item, with the followin labels:
-```js
+Create a device & endpoint item, with the following labels:
+```json
 {
-   labels: [
+   "labels": [
       "type=serial",
       "bridge=true",
       "mode=rs232"
@@ -52,10 +58,21 @@ Create a device & endpoint item, with the followin labels:
 }
 ```
 
-> [!NOTE]
-> The configration above is very minimalistic.<br />
-> **TODO** Add more details/examples
+Ensure that a **ETHERNET** interface exists on the device item with the correct settings from socat above:
+```json
+{
+  "type": "ETHERNET",
+  "settings": {
+    "socket": "tcp",
+    "host": "127.5.5.1",
+    "port": 4161
+  }
+}
+```
 
+All commands on the endpoint, needs to be configured to use the **ETHERNET** interface, which leads to the socat bridge.<br />
+Otherwise a error is shown: _"Multiple interface IDs in commands array deteced"_.<br />
+ETHERNET & non-ETHERNET commands cannot be mixed!
 
 # Installation
 1) Create a new plugin over the OpenHaus backend HTTP API
@@ -79,5 +96,5 @@ Add plugin item via HTTP API:<br />
 
 Mount the source code into the backend plugins folder
 ```sh
-sudo mount --bind ~/projects/OpenHaus/plugins/oh-plg-rs232-bridge/ ~/projects/OpenHaus/backend/plugins/38708ff1-5fc0-4723-8fe9-64e4695705ed/
+sudo mount --bind ~/projects/OpenHaus/plugins/oh-plg-RS232-bridge/ ~/projects/OpenHaus/backend/plugins/38708ff1-5fc0-4723-8fe9-64e4695705ed/
 ```
